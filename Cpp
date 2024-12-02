@@ -1,0 +1,620 @@
+#define _CRT_SECURE_NO_WARNINGS
+
+#include <iostream>
+using std::cin;
+using std::cout;
+using std::endl;
+
+#include <fstream>
+using std::ofstream;
+using std::ifstream;
+
+
+#include <vector>
+using std::vector;
+
+
+#include <cstring>
+
+#include <regex>
+using std::regex;
+using std::regex_match;
+using std::regex_constants::icase;
+
+#include <string>
+using std::string;
+
+const int DIRECTORY_SIZE = 100;
+const int NAME_LENGTH = 21;
+const int NUMB_LENGTH = 13;
+const int BDAY_LENGTH = 11;
+
+void processor(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries);
+void readData(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries);
+void infoSearchByName(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int numberOfEntries);
+void addPerson(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries);
+void editInfo(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries);
+void bubbleSort(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int numberOfEntries);
+void writeData(int numberOfEntries, char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH]);
+void readFromConsole(char array[], const int length);
+void errorCheckAndFix(char array[], const int length, string message1, string message2);
+bool formatCheck(char characterToCheck, char characterCheckingAgaisnt);
+bool binarySearchLast(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], int& position, char nameWanted[], int numberOfEntries, char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH]);
+bool binarySearchFirst(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], int& position, char nameWanted[], int numberOfEntries, char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH]);
+void endProgram();
+
+int main() 
+{
+	char fName[DIRECTORY_SIZE][NAME_LENGTH] = {};
+	char lName[DIRECTORY_SIZE][NAME_LENGTH] = {};
+	char pNumb[DIRECTORY_SIZE][NUMB_LENGTH] = {};
+	char bDate[DIRECTORY_SIZE][BDAY_LENGTH] = {};
+
+	int numberOfEntries = 0;
+
+	readData(fName, lName, pNumb, bDate, numberOfEntries);
+
+	while (true) 
+	{
+		processor(fName, lName, pNumb, bDate, numberOfEntries);
+		cout << endl;
+	}
+	return 0;
+}
+
+void readData(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries)
+{
+	//Purpose: to read from input file and insert everything into their respective arrays
+	ifstream inputFile("Phone Records"); // File reading from
+	if (inputFile.is_open())
+	{
+		inputFile >> fName[numberOfEntries];
+		while (!inputFile.eof())
+		{
+			inputFile >> lName[numberOfEntries] >> pNumb[numberOfEntries] >> bDate[numberOfEntries];
+
+			//BELOW FOR TESTING
+			//cout << fName[numberOfEntries] << ' ' << lName[numberOfEntries] << ' ' << pNumb[numberOfEntries] << ' ' << bDate[numberOfEntries] << endl;
+
+			numberOfEntries++;
+			inputFile >> fName[numberOfEntries];
+		}
+
+		bubbleSort(lName, fName, pNumb, bDate, numberOfEntries);
+		inputFile.close();
+	}
+	else 
+	{
+		cout << "Error. File not opened" << endl;
+	}
+}
+
+void processor(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries)
+{
+	//purpose: to drive engine and allow user to pick options.
+	char userOptionChoice;
+
+	cout << "Please select a menu option \n"
+		<< "1) Search for a person's information by name. \n"
+		<< "2) Add a person to the database. \n"
+		<< "3) Edit a person's inforamtion. \n"
+		<< "4) Display all records. \n"
+		<< "5) Exit program. " << endl;
+
+	cin >> userOptionChoice;
+	cin.ignore(cin.rdbuf()->in_avail());
+
+	while (userOptionChoice != '1' && userOptionChoice != '2' && userOptionChoice != '3' && userOptionChoice != '4' && userOptionChoice != '5')
+	{
+		cout << "That is not a valid option. \n"
+			<< "Please select a menu option \n"
+			<< "1) Search for a person's information by name. \n"
+			<< "2) Add a person to the database. \n"
+			<< "3) Edit a person's inforamtion. \n"
+			<< "4) Display all records. \n"
+			<< "5) Exit program. " << endl;
+
+		cin >> userOptionChoice;
+		cin.ignore(cin.rdbuf()->in_avail());
+	}
+
+	switch (userOptionChoice)
+	{
+	case '1': 
+		{
+			infoSearchByName(fName, lName, pNumb, bDate, numberOfEntries);
+			break;
+		}
+	case '2':
+		{
+			if (numberOfEntries >= DIRECTORY_SIZE) //Too many entries
+			{
+				cout << "Sorry, the phone book is full. " << endl;
+			}
+			else 
+			{
+				addPerson(fName, lName, pNumb, bDate, numberOfEntries);
+			}
+			break;
+		}
+	case '3':
+		{
+			editInfo(fName, lName, pNumb, bDate, numberOfEntries);
+			break;
+		}
+	case '4':
+		{
+			writeData(numberOfEntries, lName, fName, pNumb, bDate);
+			break;
+		}
+	case '5':
+		{
+			endProgram();
+		}
+	}
+}
+
+void infoSearchByName(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int numberOfEntries)
+{
+	bool found = false;
+	int position = 0;
+	char nameWanted[NAME_LENGTH];
+
+	cout << "Enter name you want to search: " << endl;
+	cin >> nameWanted;
+	cin.ignore(cin.rdbuf()->in_avail());
+
+	if (binarySearchLast(lName, fName, position, nameWanted, numberOfEntries, pNumb, bDate) == true) 
+	{
+		cout << lName[position] << ", " << fName[position] << ' ' << pNumb[position] << ' ' << bDate[position] << endl;
+	}
+	else if (binarySearchFirst(lName, fName, position, nameWanted, numberOfEntries, pNumb, bDate) == true) 
+	{
+		cout << lName[position] << ", " << fName[position] << ' ' << pNumb[position] << ' ' << bDate[position] << endl;
+	}
+	else 
+	{
+		cout << "Name not found." << endl;
+	}
+
+	bubbleSort(lName, fName, pNumb, bDate, numberOfEntries);
+}
+
+void addPerson(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries)
+{
+	bool error = false;
+
+	cout << "Enter your entries first name: " << endl;
+	readFromConsole(fName[numberOfEntries], NAME_LENGTH);
+	errorCheckAndFix(fName[numberOfEntries], NAME_LENGTH, "The name you entered has a number in it. \n", "Enter your entries first name: ");
+	fName[numberOfEntries][0] = toupper(fName[numberOfEntries][0]);
+
+	cout << "Enter your entries last name: " << endl;
+	readFromConsole(lName[numberOfEntries], NAME_LENGTH);
+	errorCheckAndFix(lName[numberOfEntries], NAME_LENGTH, "The name you entered has a number in it. \n", "Enter your entries last name: ");
+	lName[numberOfEntries][0] = toupper(lName[numberOfEntries][0]);
+	
+	//-------------------------------------------//
+	cout << "Enter your entries phone number in a xxx-xxx-xxxx format: " << endl;
+	readFromConsole(pNumb[numberOfEntries], NUMB_LENGTH);
+
+	//Checks for incorrect formating
+	if (formatCheck(pNumb[numberOfEntries][3], '-'))
+	{
+		error = formatCheck(pNumb[numberOfEntries][3], '-');
+	}
+	else if (formatCheck(pNumb[numberOfEntries][7], '-'))
+	{
+		error = formatCheck(pNumb[numberOfEntries][7], '-');
+	}
+
+	while (error == true) 
+	{
+		error = false;
+
+		cout << "The phone number you entered has an incorrect format. \n" 
+		     << "Enter your entries phone number in a xxx-xxx-xxxx format: " << endl;
+		readFromConsole(pNumb[numberOfEntries], NUMB_LENGTH);
+
+		if (formatCheck(pNumb[numberOfEntries][3], '-'))
+		{
+			error = formatCheck(pNumb[numberOfEntries][3], '-');
+		}
+		else if (formatCheck(pNumb[numberOfEntries][7], '-'))
+		{
+			error = formatCheck(pNumb[numberOfEntries][7], '-');
+		}
+	}
+
+	//checks for alpha numeric in phone number
+	for (int i = 0; i < 12; i++) 
+	{
+		if (i != 3 && i != 7) 
+		{
+			if (isalpha(pNumb[numberOfEntries][i])) 
+			{
+				error = true;
+			}
+		}
+	}
+
+	while (error == true) 
+	{
+		error = false;
+
+		cout << "The phone number entered has an alphabetical character in it. \n"
+		 	 << "Enter your entries phone number in a xxx-xxx-xxxx format: " << endl;
+		readFromConsole(pNumb[numberOfEntries], NUMB_LENGTH);
+	
+		for (int i = 0; i < 12 && pNumb[numberOfEntries][i] != '\0'; i++)
+		{
+			if (i != 3 && i != 7)
+			{
+				if (isalpha(pNumb[numberOfEntries][i]))
+				{
+					error = true;
+				}
+			}
+		}
+	}	
+	//--------------------------------------------//
+
+	//--------------------------------------------//
+	cout << "Enter your entries birthday in a mm/dd/yyyy format: " << endl;
+	readFromConsole(bDate[numberOfEntries], BDAY_LENGTH);
+	
+	//Checks for incorrect formating
+	if (formatCheck(bDate[numberOfEntries][2], '/'))
+	{
+		error = formatCheck(bDate[numberOfEntries][2], '/');
+	}
+	else if (formatCheck(bDate[numberOfEntries][5], '/'))
+	{
+		error = formatCheck(bDate[numberOfEntries][5], '/');
+	}
+
+	while (error == true)
+	{
+		error = false;
+
+		cout << "The birthday you entered has an incorrect format. \n"
+			<< "Enter your entries birthday in a mm/dd/yyyy format: " << endl;
+		readFromConsole(bDate[numberOfEntries], BDAY_LENGTH);
+
+		if (formatCheck(bDate[numberOfEntries][2], '/'))
+		{
+			error = formatCheck(bDate[numberOfEntries][2], '/');
+		}
+		else if (formatCheck(bDate[numberOfEntries][5], '/'))
+		{
+			error = formatCheck(bDate[numberOfEntries][5], '/');
+		}
+	}
+
+	//checking for alphabetical characters
+	for (int i = 0; i < 10; i++) 
+	{
+		if (i != 2 && i != 5)
+		{
+			if (isalpha(bDate[numberOfEntries][i]))
+			{
+				error = true;
+			}
+		}
+	}
+
+	while (error == true)
+	{
+		error = false;
+
+		cout << "The birthday entered has an alphabetical character in it. \n"
+			<< "Enter your entries birthday in a mm/dd/yyyy format: " << endl;
+
+		readFromConsole(bDate[numberOfEntries], BDAY_LENGTH);
+		for (int i = 0; i < 10; i++)
+		{
+			if (i != 2 && i != 5)
+			{
+				if (isalpha(bDate[numberOfEntries][i]))
+				{
+					error = true;
+				}
+			}
+		}
+	}
+
+
+	//--------------------------------------------//
+
+	numberOfEntries++;
+}
+
+bool formatCheck(char characterToCheck, char characterCheckingAgaisnt)
+{
+	bool error = false;
+	if (characterToCheck != characterCheckingAgaisnt) 
+	{
+		error = true;
+	}
+	return error;
+}
+
+void editInfo(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries)
+{
+	//Use regex match instead of strcmp for edit info
+
+
+	bool found = false;
+	int position = 0;
+	char nameWanted[NAME_LENGTH];
+	char infoWantedToEdit[NAME_LENGTH];
+
+	cout << "Enter name you want to edit: " << endl;
+	cin >> nameWanted;
+
+	//finds name to edit
+	if (binarySearchFirst(lName, fName, position, nameWanted, numberOfEntries, pNumb, bDate) || binarySearchLast(lName, fName, position, nameWanted, numberOfEntries, pNumb, bDate))
+	{
+		found = true;
+		cout << "Edit the info you want to edit. \n"
+			<< "1) First Name\n"
+			<< "2) Last Name\n"
+			<< "3) Phone Number\n"
+			<< "4) Birthday" << endl;
+		readFromConsole(infoWantedToEdit, NAME_LENGTH);
+
+		while (!regex_match(infoWantedToEdit, regex("first name", icase)) && !regex_match(infoWantedToEdit, regex("last name", icase)) && !regex_match(infoWantedToEdit, regex("phone number", icase)) && !regex_match(infoWantedToEdit, regex("birthday", icase)) && strcmp(infoWantedToEdit, "1") != 0 && strcmp(infoWantedToEdit, "2") != 0 && strcmp(infoWantedToEdit, "3") != 0 && strcmp(infoWantedToEdit, "4") != 0) //add numbers
+		{
+			cout << "That is not a valid option \n"
+				<< "Edit the info you want to edit. \n\n"
+				<< "1) First Name\n"
+				<< "2) Last Name\n"
+				<< "3) Phone Number\n"
+				<< "4) Birthday" << endl;
+			readFromConsole(infoWantedToEdit, NAME_LENGTH);
+		}
+
+		//gets attribute to edit then promprs user to edit 
+		if (regex_match(infoWantedToEdit, regex("first name", icase)) || strcmp(infoWantedToEdit, "1") == 0)
+		{
+			cout << "What do you want to change the first name to?" << endl;
+			readFromConsole(fName[position], NAME_LENGTH);
+			fName[position][0] = toupper(fName[position][0]);
+		}
+		else if (regex_match(infoWantedToEdit, regex("last name", icase)) || strcmp(infoWantedToEdit, "2") == 0)
+		{
+			cout << "What do you want to change the last name to?" << endl;
+			readFromConsole(lName[position], NAME_LENGTH);
+			lName[position][0] = toupper(lName[position][0]);
+		}
+		else if (regex_match(infoWantedToEdit, regex("phone number", icase)) || strcmp(infoWantedToEdit, "3") == 0)
+		{
+			cout << "What do you want to change it to?" << endl
+				<< "Enter it in a xxx-xxx-xxxx format." << endl;
+			readFromConsole(pNumb[position], NUMB_LENGTH);
+
+			while (!regex_match(pNumb[position], regex("[1-9][0-9][0-9](-)[1-9][0-9][0-9](-)[1-9][0-9][0-9][0-9]"))) 
+			{
+				cout << "Incorrect format. " << "\n" 
+					 << "What do you want to change it to?" << "\n"
+					<< "Enter it in a xxx-xxx-xxxx format." << endl;
+				readFromConsole(pNumb[position], NUMB_LENGTH);
+			}
+		}
+		else if (regex_match(infoWantedToEdit, regex("birthday", icase)) || strcmp(infoWantedToEdit, "4") == 0)
+		{
+			cout << "What do you want to change the birthday to?" << endl
+				<< "Enter it in a xx/xx/xxxx format." << endl;
+			readFromConsole(bDate[position], BDAY_LENGTH);
+
+			while (!regex_match(bDate[position], regex("[0-1][0-9](/)[0-3][0-9](/)[0-2][0-9][0-9][0-9]"))) 
+			{
+				cout << "Incorrect format. " << "\n"
+					 << "What do you want to change the birthday to?" << "\n"
+					 << "Enter it in a xx/xx/xxxx format." << endl;
+				readFromConsole(bDate[position], BDAY_LENGTH);
+			}
+		}
+	}
+	else 
+	{
+		cout << "Name not found." << endl;
+	}
+}
+
+void writeData(int numberOfEntries, char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH])
+{
+	//Write to a file and console output
+	ofstream outputFile("Updated Phone Records.txt");
+	bubbleSort(lName, fName, pNumb, bDate, numberOfEntries);
+
+	if (outputFile.is_open()) 
+	{
+		for (int i = 0; i < numberOfEntries; i++) 
+		{
+			outputFile << lName[i] << ", " << fName[i] << ' ' << pNumb[i] << ' ' << bDate[i] << endl;
+			cout << lName[i] << ", " << fName[i] << ' ' << pNumb[i] << ' ' << bDate[i] << endl;
+		}
+
+		outputFile.close();
+	} else
+	{
+		cout << "Error... \n"
+			 << "File not opened" << endl;
+	}
+}
+
+void bubbleSort(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int numberOfEntries)
+{
+	char tempFName[NAME_LENGTH];
+	char tempLName[NAME_LENGTH];
+	char tempPNumb[NUMB_LENGTH];
+	char tempBDate[BDAY_LENGTH];
+
+	char* ptr1;
+	char* ptr2;
+
+	for (int pass = 0; pass < numberOfEntries; pass++) 
+	{
+		for (int i = 0; i < numberOfEntries - pass - 1; i++) 
+		{
+			ptr1 = &lName[i][0];
+			ptr2 = &lName[i + 1][0];
+
+			if (strcmp(ptr1, ptr2) > 0)
+			{
+				strcpy(tempFName, fName[i]);
+				strcpy(tempLName, lName[i]);
+				strcpy(tempPNumb, pNumb[i]);
+				strcpy(tempBDate, bDate[i]);
+
+				strcpy(fName[i], fName[i + 1]);
+				strcpy(lName[i], lName[i + 1]);
+				strcpy(pNumb[i], pNumb[i + 1]);
+				strcpy(bDate[i], bDate[i + 1]);
+
+				strcpy(fName[i + 1], tempFName);
+				strcpy(lName[i + 1], tempLName);
+				strcpy(pNumb[i + 1], tempPNumb);
+				strcpy(bDate[i + 1], tempBDate);
+			}
+		}
+	}
+}
+
+void endProgram() 
+{
+	cout << "Exiting program..." << endl;
+	exit(0);
+}
+
+void readFromConsole(char array[], const int length) 
+{
+	cin.ignore(cin.rdbuf()->in_avail());
+	cin.getline(array, length);
+	cin.clear();
+	cin.ignore(cin.rdbuf()->in_avail());
+}
+
+void errorCheckAndFix(char array[], const int length, string message1, string message2) 
+{
+	bool error = false;
+
+	for (int i = 0; i < strlen(array); i++)
+	{
+		if (isdigit(array[i]))
+		{
+			error = true;
+		}
+	}
+
+	while (error == true)
+	{
+		error = false;
+
+		cout << message1
+			<< message2 << endl;
+		readFromConsole(array, length);
+
+		for (int i = 0; i < strlen(array); i++)
+		{
+			if (isdigit(array[i]))
+			{
+				error = true;
+			}
+		}
+	}
+}
+
+bool binarySearchLast(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], int& position, char nameWanted[], int numberOfEntries, char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH])
+{
+	bool found = false;
+	int low = 0;
+	int high = numberOfEntries - 1;
+	int mid = 0;
+
+	//sort names from last
+	bubbleSort(lName, fName, pNumb, bDate, numberOfEntries);
+	//last name case
+	//base cases of high and low
+
+	if (regex_match(lName[0], regex(nameWanted, icase)))
+	{
+		found = true;
+		position = 0;
+	}
+	else if (regex_match(lName[high], regex(nameWanted, icase)))
+	{
+		found = true;
+		position = high;
+	}
+
+	while (low <= high && found == false)
+	{
+		mid = ((high - low) / 2) + low;
+
+		if (regex_match(lName[mid], regex(nameWanted, icase)))
+		{
+			found = true;
+			position = mid;
+			break;
+		}
+
+		if (regex_match(&lName[mid][0], regex(&nameWanted[0], icase)))
+		{
+			high = mid - 1;
+		}
+		else
+		{
+			low = mid + 1;
+		}
+	}
+	return found;
+}
+
+bool binarySearchFirst(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], int& position, char nameWanted[], int numberOfEntries, char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH])
+{
+	//add regex to search
+
+	int low = 0;
+	int high = numberOfEntries - 1;
+	int mid = 0;
+	bool found = false;
+
+	//First name if last name isnt found
+	//first name sorted
+	bubbleSort(fName, lName, pNumb, bDate, numberOfEntries);
+
+	if (regex_match(fName[0], regex(nameWanted, icase)))
+	{
+		found = true;
+		position = 0;
+	}
+	else if (regex_match(fName[high], regex(nameWanted, icase)))
+	{
+		found = true;
+		position = high;
+	}
+
+	while (low <= high && found == false)
+	{
+		mid = ((high - low) / 2) + low;
+
+		if (regex_match(fName[mid], regex(nameWanted, icase)))
+		{
+			found = true;
+			position = mid;
+			break;
+		}
+
+		if (regex_match(&fName[mid][0], regex(&nameWanted[0], icase)))
+		{
+			high = mid - 1;
+		}
+		else
+		{
+			low = mid + 1;
+		}
+	}
+	return found;
+}
