@@ -5,14 +5,17 @@ using std::cin;
 using std::cout;
 using std::endl;
 
+#include <iomanip>
+using std::setw;
+using std::left;
+using std::right;
+
 #include <fstream>
 using std::ofstream;
 using std::ifstream;
 
-
 #include <vector>
 using std::vector;
-
 
 #include <cstring>
 
@@ -29,7 +32,7 @@ const int NAME_LENGTH = 21;
 const int NUMB_LENGTH = 13;
 const int BDAY_LENGTH = 11;
 
-void processor(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries);
+void processor(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries, bool& continueProgram);
 void readData(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries);
 void infoSearchByName(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int numberOfEntries);
 void addPerson(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries);
@@ -41,7 +44,7 @@ void errorCheckAndFix(char array[], const int length, string message1, string me
 bool formatCheck(char characterToCheck, char characterCheckingAgaisnt);
 bool binarySearchLast(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], int& position, char nameWanted[], int numberOfEntries, char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH]);
 bool binarySearchFirst(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], int& position, char nameWanted[], int numberOfEntries, char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH]);
-void endProgram();
+void endProgram(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int numberOfEntries);
 
 int main() 
 {
@@ -50,13 +53,14 @@ int main()
 	char pNumb[DIRECTORY_SIZE][NUMB_LENGTH] = {};
 	char bDate[DIRECTORY_SIZE][BDAY_LENGTH] = {};
 
+	bool continueProgram = true;
 	int numberOfEntries = 0;
 
 	readData(fName, lName, pNumb, bDate, numberOfEntries);
 
-	while (true) 
+	while (continueProgram) 
 	{
-		processor(fName, lName, pNumb, bDate, numberOfEntries);
+		processor(fName, lName, pNumb, bDate, numberOfEntries, continueProgram);
 		cout << endl;
 	}
 	return 0;
@@ -65,19 +69,20 @@ int main()
 void readData(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries)
 {
 	//Purpose: to read from input file and insert everything into their respective arrays
-	ifstream inputFile("Phone Records"); // File reading from
+	ifstream inputFile("PhoneRecords.txt"); // File reading from
+
 	if (inputFile.is_open())
 	{
-		inputFile >> fName[numberOfEntries];
+		inputFile >> lName[numberOfEntries];
 		while (!inputFile.eof())
 		{
-			inputFile >> lName[numberOfEntries] >> pNumb[numberOfEntries] >> bDate[numberOfEntries];
+			inputFile >> fName[numberOfEntries] >> pNumb[numberOfEntries] >> bDate[numberOfEntries];
 
 			//BELOW FOR TESTING
 			//cout << fName[numberOfEntries] << ' ' << lName[numberOfEntries] << ' ' << pNumb[numberOfEntries] << ' ' << bDate[numberOfEntries] << endl;
 
 			numberOfEntries++;
-			inputFile >> fName[numberOfEntries];
+			inputFile >> lName[numberOfEntries];
 		}
 
 		bubbleSort(lName, fName, pNumb, bDate, numberOfEntries);
@@ -89,7 +94,7 @@ void readData(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[]
 	}
 }
 
-void processor(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries)
+void processor(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int& numberOfEntries, bool& continueProgram)
 {
 	//purpose: to drive engine and allow user to pick options.
 	char userOptionChoice;
@@ -149,7 +154,9 @@ void processor(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[
 		}
 	case '5':
 		{
-			endProgram();
+			endProgram(fName, lName, pNumb, bDate, numberOfEntries);
+			continueProgram = false;
+			break;
 		}
 	}
 }
@@ -424,23 +431,21 @@ void editInfo(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[]
 
 void writeData(int numberOfEntries, char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH])
 {
-	//Write to a file and console output
-	ofstream outputFile("Updated Phone Records.txt");
+	//Write to console output
 	bubbleSort(lName, fName, pNumb, bDate, numberOfEntries);
 
-	if (outputFile.is_open()) 
-	{
-		for (int i = 0; i < numberOfEntries; i++) 
-		{
-			outputFile << lName[i] << ", " << fName[i] << ' ' << pNumb[i] << ' ' << bDate[i] << endl;
-			cout << lName[i] << ", " << fName[i] << ' ' << pNumb[i] << ' ' << bDate[i] << endl;
-		}
+	cout << setw(NAME_LENGTH) << left << "last Name" << ' '
+		<< setw(NAME_LENGTH) << "First Name" << ' '
+		<< setw(NUMB_LENGTH) << "Phone #" << ' '
+		<< setw(BDAY_LENGTH) << "Birthday" << "\n"
+		<< "--------------------------------------------------------------------" << endl;
 
-		outputFile.close();
-	} else
+	for (int i = 0; i < numberOfEntries; i++)
 	{
-		cout << "Error... \n"
-			 << "File not opened" << endl;
+		cout << setw(NAME_LENGTH) << lName[i] << ' '
+			<< setw(NAME_LENGTH) << fName[i] << ' '
+			<< setw(NUMB_LENGTH) << pNumb[i] << ' '
+			<< setw(BDAY_LENGTH) << bDate[i] << endl;
 	}
 }
 
@@ -451,8 +456,8 @@ void bubbleSort(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], char pNumb
 	char tempPNumb[NUMB_LENGTH];
 	char tempBDate[BDAY_LENGTH];
 
-	char* ptr1;
-	char* ptr2;
+	char* ptr1 = nullptr;
+	char* ptr2 = nullptr;
 
 	for (int pass = 0; pass < numberOfEntries; pass++) 
 	{
@@ -477,15 +482,38 @@ void bubbleSort(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], char pNumb
 				strcpy(lName[i + 1], tempLName);
 				strcpy(pNumb[i + 1], tempPNumb);
 				strcpy(bDate[i + 1], tempBDate);
-			}
+			} 
 		}
 	}
+
+	/*
+	for (int i = 0; i < numberOfEntries; i++) 
+	{
+		cout << lName[i] << ", " << fName[i] << ' ' << pNumb[i] << ' ' << bDate[i] << endl;
+	}
+	*/	
 }
 
-void endProgram() 
+void endProgram(char fName[][NAME_LENGTH], char lName[][NAME_LENGTH], char pNumb[][NUMB_LENGTH], char bDate[][BDAY_LENGTH], int numberOfEntries)
 {
+	ofstream outputFile("PhoneRecords.txt");
+
+	bubbleSort(lName, fName, pNumb, bDate, numberOfEntries);
+
+	if (outputFile.is_open()) 
+	{
+		for (int i = 0; i < numberOfEntries; i++) 
+		{
+			outputFile << lName[i] << ' ' << fName[i] << ' ' << pNumb[i] << ' ' << bDate[i] << endl;
+		}
+		outputFile.close();
+	}
+	else 
+	{
+		cout << "Error. File not open." << endl;
+	}
+
 	cout << "Exiting program..." << endl;
-	exit(0);
 }
 
 void readFromConsole(char array[], const int length) 
@@ -532,6 +560,7 @@ bool binarySearchLast(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], int&
 	int low = 0;
 	int high = numberOfEntries - 1;
 	int mid = 0;
+	nameWanted[0] = toupper(nameWanted[0]);
 
 	//sort names from last
 	bubbleSort(lName, fName, pNumb, bDate, numberOfEntries);
@@ -543,15 +572,15 @@ bool binarySearchLast(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], int&
 		found = true;
 		position = 0;
 	}
-	else if (regex_match(lName[high], regex(nameWanted, icase)))
+	else if (regex_match(lName[high], regex(nameWanted, icase)) && !found)
 	{
 		found = true;
 		position = high;
 	}
 
-	while (low <= high && found == false)
+	while (low <= high && !found)
 	{
-		mid = ((high - low) / 2) + low;
+		mid = ((high + low) / 2);
 
 		if (regex_match(lName[mid], regex(nameWanted, icase)))
 		{
@@ -560,7 +589,7 @@ bool binarySearchLast(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], int&
 			break;
 		}
 
-		if (regex_match(&lName[mid][0], regex(&nameWanted[0], icase)))
+		if (strcmp(&lName[mid][0], &nameWanted[0]) > 0)
 		{
 			high = mid - 1;
 		}
@@ -569,6 +598,7 @@ bool binarySearchLast(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], int&
 			low = mid + 1;
 		}
 	}
+
 	return found;
 }
 
@@ -580,6 +610,7 @@ bool binarySearchFirst(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], int
 	int high = numberOfEntries - 1;
 	int mid = 0;
 	bool found = false;
+	nameWanted[0] = toupper(nameWanted[0]);
 
 	//First name if last name isnt found
 	//first name sorted
@@ -590,7 +621,7 @@ bool binarySearchFirst(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], int
 		found = true;
 		position = 0;
 	}
-	else if (regex_match(fName[high], regex(nameWanted, icase)))
+	else if (regex_match(fName[high], regex(nameWanted, icase)) && !found)
 	{
 		found = true;
 		position = high;
@@ -607,7 +638,7 @@ bool binarySearchFirst(char lName[][NAME_LENGTH], char fName[][NAME_LENGTH], int
 			break;
 		}
 
-		if (regex_match(&fName[mid][0], regex(&nameWanted[0], icase)))
+		if (strcmp(&fName[mid][0], &nameWanted[0]) > 0)
 		{
 			high = mid - 1;
 		}
